@@ -39,3 +39,45 @@ def get_pending_nims(conn, limit=None, retry_failed_only=False):
     with conn.cursor() as cursor:
         cursor.execute(query, params)
         return [row[0] for row in cursor.fetchall()]
+
+
+def fetch_foto1(conn, nim):
+    with conn.cursor() as cursor:
+        cursor.execute("SELECT foto1 FROM foto.md_foto WHERE nim = %s", (nim,))
+        result = cursor.fetchone()
+
+    if result is None or result[0] is None:
+        return None
+
+    lo = conn.lobject(result[0], "rb")
+    data = lo.read()
+    lo.close()
+    return data
+
+
+def write_foto2(conn, nim, image_bytes):
+    lo = conn.lobject(0, "wb")
+    lo.write(image_bytes)
+    new_oid = lo.oid
+    lo.close()
+
+    with conn.cursor() as cursor:
+        cursor.execute(
+            "UPDATE foto.md_foto SET foto2 = %s WHERE nim = %s",
+            (new_oid, nim),
+        )
+
+
+def log_result(conn, nim, status, error_message=None):
+    with conn.cursor() as cursor:
+        cursor.execute(
+            """
+            INSERT INTO foto.enhancement_log (nim, status, error_message, processed_at)
+            VALUES (%s, %s, %s, now())
+            ON CONFLICT (nim) DO UPDATE
+            SET status = EXCLUDED.status,
+                error_message = EXCLUDED.error_message,
+                processed_at = EXCLUDED.processed_at
+            """,
+            (nim, status, error_message),
+        )
