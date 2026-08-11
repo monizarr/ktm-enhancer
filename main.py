@@ -2,8 +2,6 @@ import argparse
 import os
 import sys
 
-import torch
-
 from enhancer.db import (
     connect_db,
     fetch_foto1,
@@ -49,6 +47,8 @@ def main():
     parser.add_argument("--retry-failed", action="store_true")
     args = parser.parse_args()
 
+    import torch
+
     if not torch.cuda.is_available():
         print(
             "Error: GPU CUDA tidak terdeteksi. Alat ini membutuhkan GPU NVIDIA "
@@ -59,36 +59,38 @@ def main():
         sys.exit(1)
 
     conn = connect_db()
-    restorer = load_restorer(MODEL_PATH)
+    try:
+        restorer = load_restorer(MODEL_PATH)
 
-    if args.nim:
-        nims = [args.nim]
-    else:
-        nims = get_pending_nims(conn, limit=args.limit, retry_failed_only=args.retry_failed)
-
-    total = len(nims)
-    success_count = 0
-    failed_count = 0
-
-    for i, nim in enumerate(nims, start=1):
-        try:
-            ok, error = process_nim(conn, nim, restorer, args.dry_run)
-            conn.commit()
-        except Exception as exc:  # noqa: BLE001 - any failure for this NIM must not abort the batch
-            conn.rollback()
-            log_result(conn, nim, "failed", str(exc))
-            conn.commit()
-            ok, error = False, str(exc)
-
-        if ok:
-            success_count += 1
-            print(f"[{i}/{total}] {nim} ... OK")
+        if args.nim:
+            nims = [args.nim]
         else:
-            failed_count += 1
-            print(f"[{i}/{total}] {nim} ... FAILED: {error}")
+            nims = get_pending_nims(conn, limit=args.limit, retry_failed_only=args.retry_failed)
 
-    conn.close()
-    print(f"\nSelesai. Sukses: {success_count}, Gagal: {failed_count}, Total: {total}")
+        total = len(nims)
+        success_count = 0
+        failed_count = 0
+
+        for i, nim in enumerate(nims, start=1):
+            try:
+                ok, error = process_nim(conn, nim, restorer, args.dry_run)
+                conn.commit()
+            except Exception as exc:  # noqa: BLE001 - any failure for this NIM must not abort the batch
+                conn.rollback()
+                log_result(conn, nim, "failed", str(exc))
+                conn.commit()
+                ok, error = False, str(exc)
+
+            if ok:
+                success_count += 1
+                print(f"[{i}/{total}] {nim} ... OK")
+            else:
+                failed_count += 1
+                print(f"[{i}/{total}] {nim} ... FAILED: {error}")
+
+        print(f"\nSelesai. Sukses: {success_count}, Gagal: {failed_count}, Total: {total}")
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":
