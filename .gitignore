@@ -5,3 +5,4 @@ pyvenv.cfg
 .env
 local_output/
 enhancer/models/*.pth
+gfpgan/

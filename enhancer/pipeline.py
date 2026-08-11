@@ -35,3 +35,32 @@ def encode_jpeg(img_bgr):
     buf = io.BytesIO()
     pil_img.save(buf, format="JPEG", quality=95, dpi=(96, 96))
     return buf.getvalue()
+
+
+def load_restorer(model_path, device="cuda"):
+    from gfpgan import GFPGANer
+
+    return GFPGANer(
+        model_path=model_path,
+        upscale=2,
+        arch="clean",
+        channel_multiplier=2,
+        bg_upsampler=None,
+        device=device,
+    )
+
+
+def restore_face(img, restorer):
+    _, _, restored_img = restorer.enhance(
+        img, has_aligned=False, only_center_face=False, paste_back=True
+    )
+    return restored_img
+
+
+def enhance(image_bytes, restorer):
+    img = decode_jpeg(image_bytes)
+    img = denoise(img)
+    img = correct_lighting(img)
+    img = restore_face(img, restorer)
+    img = resize_final(img)
+    return encode_jpeg(img)
