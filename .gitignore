@@ -6,3 +6,4 @@ pyvenv.cfg
 local_output/
 enhancer/models/*.pth
 gfpgan/
+__pycache__/
