@@ -1,1 +1,7 @@
 psycopg2-binary
+python-dotenv
+opencv-python
+numpy
+Pillow
+gfpgan
+pytest
