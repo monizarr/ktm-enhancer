@@ -7,3 +7,4 @@ local_output/
 enhancer/models/*.pth
 gfpgan/
 __pycache__/
+Input/**/*
