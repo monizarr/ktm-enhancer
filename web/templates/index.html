@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% block title %}{% if nim %}{{ nim }} · {% endif %}KTM Enhancer{% endblock %}
+{% block bar %}
+  <form class="cari" method="get" action="/" role="search">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <input id="nim" type="text" name="nim" value="{{ nim }}" placeholder="NIM" inputmode="numeric"
+           autocomplete="off" aria-label="Cari NIM" {% if not nim %}autofocus{% endif %}>
+    <kbd>/</kbd>
+  </form>
+{% endblock %}
+
+{% block content %}
+  {% if pesan %}<div class="status {{ jenis }}" role="status">{{ pesan }}</div>{% endif %}
+
+  {% if nim %}
+  <div class="judul">
+    <h1>{{ nim }}</h1>
+    <p>{% if not terdaftar %}<span class="baru">NIM belum terdaftar · dibuat saat foto1 diupload</span>{% elif ada_preview %}Preview menunggu keputusan{% elif ada_foto2 %}foto2 sudah terisi{% else %}foto2 belum terisi{% endif %}</p>
+  </div>
+  {% else %}
+  <p class="awal">Ketik NIM lalu tekan Enter. Tekan <kbd>/</kbd> untuk kembali ke kolom pencarian.</p>
+  {% endif %}
+
+  <section class="pipeline" aria-label="Alur foto">
+    <div class="slot">
+      <div class="slot-head"><b>Asli · foto1</b><span class="meta" data-ukuran="foto1"></span></div>
+      <div class="frame">
+        {% if ada_foto1 %}<img id="img-foto1" src="/foto/{{ nim }}/foto1?v={{ v }}" alt="foto1 {{ nim }}" data-meta="foto1">
+        {% elif nim %}
+        <form method="post" action="/upload-foto1/{{ nim }}" enctype="multipart/form-data" id="form-unggah">
+          <label class="unggah" id="zona-unggah">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+            <b id="label-unggah">Upload foto1</b>
+            <small>klik atau seret ke sini<br>JPEG / PNG · maks 15 MB</small>
+            <kbd>U</kbd>
+            <input type="file" name="file" id="input-unggah" accept="image/jpeg,image/png" required>
+          </label>
+        </form>
+        {% else %}<div class="kosong">foto1</div>{% endif %}
+      </div>
+      <div class="slot-foot"></div>
+    </div>
+
+    <div class="sambung">
+      <svg class="panah" width="28" height="16" viewBox="0 0 28 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M1 8h25M20 2l6 6-6 6"/></svg>
+      {% if ada_foto1 %}
+      <form method="post" action="/enhance/{{ nim }}" data-proses="preview">
+        <button type="submit" id="btn-enhance">{{ "Ulangi" if ada_preview else "Enhance" }} <kbd>E</kbd></button>
+      </form>
+      <form method="post" action="/salin/{{ nim }}" {% if ada_foto2 %}data-konfirmasi="Timpa foto2?"{% endif %}>
+        <button type="submit" class="halus" id="btn-salin" title="Isi foto2 dengan salinan foto1 apa adanya">Salin tanpa enhance <kbd>K</kbd></button>
+      </form>
+      {% endif %}
+    </div>
+
+    <div class="slot preview">
+      <div class="slot-head"><b>Preview</b><span class="meta" data-ukuran="preview"></span></div>
+      <div class="frame" id="frame-preview">
+        {% if ada_preview %}
+        <img src="/preview/{{ nim }}?v={{ v }}" alt="preview enhance {{ nim }}" data-meta="preview">
+        {% if ada_foto1 %}<img class="banding" src="/foto/{{ nim }}/foto1?v={{ v }}" alt=""><span class="tag">ASLI</span>{% endif %}
+        {% else %}<div class="kosong">belum ada preview</div>{% endif %}
+      </div>
+      <div class="slot-foot">
+        {% if ada_preview and ada_foto1 %}
+        <button type="button" class="halus bandingkan" id="btn-banding">Tahan untuk bandingkan <kbd>C</kbd></button>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="sambung">
+      <svg class="panah" width="28" height="16" viewBox="0 0 28 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M1 8h25M20 2l6 6-6 6"/></svg>
+      {% if ada_preview %}
+      <form method="post" action="/simpan/{{ nim }}">
+        <button type="submit" class="simpan" id="btn-simpan">Simpan ke foto2 <kbd>S</kbd></button>
+      </form>
+      <form method="post" action="/batal/{{ nim }}">
+        <button type="submit" class="halus" id="btn-batal">Batal <kbd>Esc</kbd></button>
+      </form>
+      {% endif %}
+    </div>
+
+    <div class="slot">
+      <div class="slot-head"><b>Tersimpan · foto2</b><span class="meta" data-ukuran="foto2"></span></div>
+      <div class="frame">
+        {% if ada_foto2 %}<img src="/foto/{{ nim }}/foto2?v={{ v }}" alt="foto2 {{ nim }}" data-meta="foto2">
+        {% else %}<div class="kosong">{{ "foto2 kosong" if nim else "foto2" }}</div>{% endif %}
+      </div>
+      <div class="slot-foot"></div>
+    </div>
+  </section>
+{% endblock %}
+
+{% block script %}
+  // Tampilkan ukuran piksel asli tiap foto
+  document.querySelectorAll("img[data-meta]").forEach(function (img) {
+    function tulis() {
+      var el = document.querySelector('[data-ukuran="' + img.dataset.meta + '"]');
+      if (el && img.naturalWidth) el.textContent = img.naturalWidth + "×" + img.naturalHeight;
+    }
+    img.complete ? tulis() : img.addEventListener("load", tulis);
+  });
+
+  // Cegah klik ganda; saat enhance, tampilkan animasi pindai di bingkai preview
+  document.querySelectorAll(".sambung form").forEach(function (form) {
+    form.addEventListener("submit", function (e) {
+      // foto2 sudah terisi: klik pertama hanya meminta konfirmasi, klik kedua baru mengirim
+      var tanya = form.dataset.konfirmasi;
+      if (tanya && !form.dataset.siap) {
+        e.preventDefault();
+        var btn = form.querySelector("button"), asal = btn.firstChild.textContent;
+        form.dataset.siap = "1";
+        btn.classList.add("waspada");
+        btn.firstChild.textContent = tanya + " ";
+        setTimeout(function () {
+          delete form.dataset.siap;
+          btn.classList.remove("waspada");
+          btn.firstChild.textContent = asal;
+        }, 4000);
+        return;
+      }
+      document.querySelectorAll(".sambung button").forEach(function (b) { b.disabled = true; });
+      form.querySelector("button").firstChild.textContent = "Memproses… ";
+      if (form.dataset.proses === "preview") {
+        document.getElementById("frame-preview").classList.add("memproses");
+      }
+    });
+  });
+
+  // Tahan tombol (atau C) untuk melihat foto asli di bingkai preview
+  var frame = document.getElementById("frame-preview");
+  var banding = document.getElementById("btn-banding");
+  function setBanding(on) { if (frame) frame.classList.toggle("membandingkan", on); }
+  if (banding) {
+    banding.addEventListener("pointerdown", function () { setBanding(true); });
+    ["pointerup", "pointerleave", "pointercancel"].forEach(function (ev) {
+      banding.addEventListener(ev, function () { setBanding(false); });
+    });
+  }
+
+  // Upload foto1: kirim otomatis setelah file dipilih atau diseret ke bingkai
+  var zona = document.getElementById("zona-unggah");
+  var inputUnggah = document.getElementById("input-unggah");
+  function kirimUnggah() {
+    if (!inputUnggah.files.length) return;
+    zona.classList.add("mengunggah");
+    document.getElementById("label-unggah").textContent = "Mengunggah";
+    document.getElementById("form-unggah").submit();
+  }
+  if (zona) {
+    inputUnggah.addEventListener("change", kirimUnggah);
+    ["dragenter", "dragover"].forEach(function (ev) {
+      zona.addEventListener(ev, function (e) { e.preventDefault(); zona.classList.add("seret"); });
+    });
+    ["dragleave", "drop"].forEach(function (ev) {
+      zona.addEventListener(ev, function () { zona.classList.remove("seret"); });
+    });
+    zona.addEventListener("drop", function (e) {
+      e.preventDefault();
+      if (e.dataTransfer.files.length) { inputUnggah.files = e.dataTransfer.files; kirimUnggah(); }
+    });
+  }
+
+  // Pintasan keyboard (diabaikan saat mengetik di kolom NIM)
+  function klik(id) { var b = document.getElementById(id); if (b && !b.disabled) b.click(); }
+  document.addEventListener("keydown", function (e) {
+    if (e.target.tagName === "INPUT") {
+      if (e.key === "Escape") e.target.blur();
+      return;
+    }
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    var k = e.key.toLowerCase();
+    if (k === "/") { e.preventDefault(); var i = document.getElementById("nim"); i.focus(); i.select(); }
+    else if (k === "e") klik("btn-enhance");
+    else if (k === "s") klik("btn-simpan");
+    else if (k === "k") klik("btn-salin");
+    else if (k === "u" && inputUnggah) inputUnggah.click();
+    else if (k === "escape") klik("btn-batal");
+    else if (k === "c" && banding && !e.repeat) setBanding(true);
+  });
+  document.addEventListener("keyup", function (e) {
+    if (e.key.toLowerCase() === "c") setBanding(false);
+  });
+{% endblock %}

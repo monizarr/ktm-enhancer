@@ -1,0 +1,165 @@
+:root {
+  --bg: #e4e4e1;
+  --panel: #f4f4f2;
+  --ink: #1b1c1e;
+  --ink-2: #55575c;
+  --ink-3: #8a8c91;
+  --line: #c9c9c5;
+  --frame: #2a2b2e;
+  --matte: #d5d5d1;
+  --accent: #c2410c;
+  --accent-ink: #fff;
+  --save: #166534;
+  --ok-bg: #dcefe1; --ok-line: #8cc49b;
+  --bad-bg: #f7dcd6; --bad-line: #d99282;
+  --info-bg: #eceadf; --info-line: #c4bf9f;
+  --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --sans: "Segoe UI", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #17181a; --panel: #1f2023; --ink: #ececea; --ink-2: #a9aaae; --ink-3: #6f7176;
+    --line: #34363a; --frame: #0c0c0d; --matte: #26272a;
+    --accent: #f97316; --accent-ink: #1b1c1e; --save: #4ade80;
+    --ok-bg: #16281c; --ok-line: #2f5e3c; --bad-bg: #2e1a16; --bad-line: #6d3328;
+    --info-bg: #26251e; --info-line: #4d4a37;
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 var(--sans); }
+
+/* ---- bilah atas ---- */
+.bar {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  padding: 12px 20px; background: var(--panel); border-bottom: 1px solid var(--line);
+}
+.brand { font-weight: 600; letter-spacing: .02em; white-space: nowrap; }
+.brand span { color: var(--accent); }
+.cari { flex: 1; display: flex; min-width: 240px; max-width: 420px; position: relative; }
+.cari svg { position: absolute; left: 10px; top: 50%; translate: 0 -50%; color: var(--ink-3); pointer-events: none; }
+.cari input {
+  flex: 1; min-width: 0; padding: 8px 40px 8px 34px; font: 600 15px var(--mono); letter-spacing: .06em;
+  color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 6px;
+}
+.cari input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.cari kbd { position: absolute; right: 8px; top: 50%; translate: 0 -50%; }
+kbd {
+  font: 11px var(--mono); padding: 1px 5px; border: 1px solid var(--line); border-bottom-width: 2px;
+  border-radius: 4px; color: var(--ink-3); background: var(--panel);
+}
+
+main { max-width: 1040px; margin: 0 auto; padding: 20px 20px 40px; }
+
+.status {
+  display: flex; gap: 10px; align-items: center; margin-bottom: 18px; padding: 9px 12px;
+  border: 1px solid var(--info-line); background: var(--info-bg); border-radius: 6px;
+}
+.status.ok { border-color: var(--ok-line); background: var(--ok-bg); }
+.status.gagal { border-color: var(--bad-line); background: var(--bad-bg); }
+.status::before { content: "i"; font: 700 12px var(--mono); width: 18px; height: 18px; display: grid; place-items: center; border-radius: 50%; border: 1px solid currentColor; flex: none; }
+.status.ok::before { content: "✓"; }
+.status.gagal::before { content: "!"; }
+
+.judul { display: flex; align-items: baseline; gap: 12px; margin-bottom: 14px; }
+.judul h1 { margin: 0; font: 600 22px var(--mono); letter-spacing: .06em; }
+.judul p { margin: 0; color: var(--ink-3); }
+.judul .baru { color: var(--accent); }
+
+/* ---- pipeline: Asli → Preview → foto2 ---- */
+.pipeline {
+  display: grid; grid-template-columns: 1fr 160px 1fr 160px 1fr; align-items: center;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 20px;
+}
+.slot { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.slot-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slot-head b { font-size: 13px; letter-spacing: .02em; }
+.slot-head .meta { font: 11px var(--mono); color: var(--ink-3); white-space: nowrap; }
+.slot.preview .slot-head b { color: var(--accent); }
+
+.frame {
+  position: relative; aspect-ratio: 3 / 5; width: 100%; max-width: 240px; margin: 0 auto;
+  background: var(--matte); border: 6px solid var(--frame); border-radius: 4px; overflow: hidden;
+}
+.frame img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.frame .banding { opacity: 0; transition: opacity .12s; }
+.frame.membandingkan .banding { opacity: 1; }
+.frame .tag {
+  position: absolute; left: 6px; top: 6px; font: 600 10px var(--mono); padding: 2px 6px;
+  background: var(--frame); color: #fff; border-radius: 3px; opacity: 0; transition: opacity .12s;
+}
+.frame.membandingkan .tag { opacity: 1; }
+.kosong {
+  position: absolute; inset: 0; display: grid; place-items: center; text-align: center;
+  color: var(--ink-3); font-size: 12px; padding: 12px;
+  background: repeating-linear-gradient(-45deg, transparent 0 8px, color-mix(in srgb, var(--ink-3) 12%, transparent) 8px 9px);
+}
+
+/* bingkai foto1 kosong = area upload */
+.unggah {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; padding: 12px; text-align: center; cursor: pointer; color: var(--ink-2);
+  outline: 2px dashed var(--ink-3); outline-offset: -10px; transition: background .12s, outline-color .12s;
+}
+.unggah:hover, .unggah:focus-within { outline-color: var(--accent); color: var(--ink); }
+.unggah.seret { outline-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--ink); }
+.unggah b { font-size: 14px; }
+.unggah small { font-size: 11px; color: var(--ink-3); }
+.unggah input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.unggah.mengunggah { cursor: wait; pointer-events: none; }
+.unggah.mengunggah b::after { content: "…"; }
+
+/* animasi pindai saat enhance berjalan */
+.frame.memproses::after {
+  content: ""; position: absolute; left: 0; right: 0; height: 30%;
+  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--accent) 45%, transparent), transparent);
+  animation: pindai 1.4s ease-in-out infinite alternate;
+}
+@keyframes pindai { from { top: -30%; } to { top: 100%; } }
+
+.sambung { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 0 8px; }
+.panah { color: var(--ink-3); }
+.sambung form { margin: 0; width: 100%; }
+.slot-foot { min-height: 30px; display: flex; justify-content: center; align-items: center; }
+button { white-space: nowrap; }
+
+button {
+  width: 100%; display: inline-flex; justify-content: center; align-items: center; gap: 6px;
+  padding: 8px 10px; font: 600 13px var(--sans); border-radius: 6px; cursor: pointer;
+  border: 1px solid transparent; background: var(--accent); color: var(--accent-ink);
+}
+button:hover { filter: brightness(1.08); }
+button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+button:disabled { cursor: wait; opacity: .65; filter: none; }
+button.simpan { background: var(--save); color: var(--accent-ink); }
+button.halus { background: transparent; color: var(--ink-2); border-color: var(--line); }
+button kbd { background: transparent; border-color: currentColor; color: inherit; opacity: .7; }
+button.halus { font-size: 12px; }
+button.waspada { background: var(--bad-bg); border-color: var(--bad-line); color: var(--ink); }
+.bandingkan { width: auto; padding: 4px 10px; font-weight: 500; font-size: 12px; user-select: none; touch-action: none; }
+
+.awal { text-align: center; color: var(--ink-2); padding: 8px 0 18px; }
+.awal kbd { font-size: 12px; }
+
+@media (max-width: 760px) {
+  .pipeline { grid-template-columns: 1fr; gap: 14px; padding: 16px; }
+  .sambung { flex-direction: row; justify-content: center; }
+  .sambung form { width: auto; flex: 1; max-width: 200px; }
+  .panah { rotate: 90deg; }
+  .frame { max-width: 200px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .frame.memproses::after { animation: none; top: 35%; }
+  .frame .banding, .frame .tag, .unggah { transition: none; }
+}
+
+/* navigasi halaman */
+.nav { display: flex; gap: 2px; padding: 3px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; }
+.nav a {
+  padding: 5px 12px; border-radius: 6px; color: var(--ink-2); text-decoration: none; font-weight: 500; white-space: nowrap;
+}
+.nav a:hover { color: var(--ink); }
+.nav a[aria-current="page"] { background: var(--panel); color: var(--ink); box-shadow: 0 1px 2px rgb(0 0 0 / .12); }

@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 from PIL import Image
 
-TARGET_SIZE = (450, 750)  # (width, height)
+TARGET_SIZE = (372, 490)  # (width, height)
 
 
 def decode_jpeg(image_bytes):

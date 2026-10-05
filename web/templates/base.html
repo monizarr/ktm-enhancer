@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 20'%3E%3Crect x='1' y='1' width='10' height='18' rx='1' fill='%23c2410c'/%3E%3C/svg%3E">
+<title>{% block title %}KTM Enhancer{% endblock %}</title>
+<link rel="stylesheet" href="/static/app.css?v={{ css_versi() }}">
+{% block head %}{% endblock %}
+</head>
+<body>
+<header class="bar">
+  <div class="brand">KTM <span>Enhancer</span></div>
+  <nav class="nav" aria-label="Halaman">
+    <a href="/" {% if halaman != "massal" %}aria-current="page"{% endif %}>Per NIM</a>
+    <a href="/massal" {% if halaman == "massal" %}aria-current="page"{% endif %}>Massal</a>
+  </nav>
+  {% block bar %}{% endblock %}
+</header>
+
+<main>
+{% block content %}{% endblock %}
+</main>
+
+<script>
+{% block script %}{% endblock %}
+</script>
+</body>
+</html>

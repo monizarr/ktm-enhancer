@@ -1,0 +1,556 @@
+{% extends "base.html" %}
+{% block title %}Massal · KTM Enhancer{% endblock %}
+
+{% block head %}
+<style>
+  main { max-width: 1240px; }
+
+  /* ---- meja unggah ---- */
+  .meja {
+    display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap;
+    padding: 18px; margin-bottom: 14px; text-align: center;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    outline: 2px dashed transparent; outline-offset: -8px; transition: outline-color .12s, background .12s;
+  }
+  .meja.kosong-meja { flex-direction: column; padding: 56px 18px; }
+  .meja.seret { outline-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--panel)); }
+  .meja .ikon { color: var(--ink-3); }
+  .meja h2 { margin: 0; font-size: 16px; }
+  .meja p { margin: 0; color: var(--ink-3); font-size: 12px; }
+  .meja code { font: 12px var(--mono); color: var(--ink-2); }
+  .meja .tombol { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .meja button { width: auto; }
+  .meja:not(.kosong-meja) .ikon, .meja:not(.kosong-meja) h2 { display: none; }
+  .meja input[type=file] { display: none; }
+  .unggah-progres { font: 12px var(--mono); color: var(--ink-2); }
+
+  details.ditolak { margin-bottom: 14px; padding: 8px 12px; border: 1px solid var(--bad-line); background: var(--bad-bg); border-radius: 6px; }
+  details.ditolak summary { cursor: pointer; font-weight: 600; }
+  details.ditolak ul { margin: 8px 0 0; padding-left: 18px; max-height: 160px; overflow: auto; font-size: 12px; }
+  details.ditolak li span { font-family: var(--mono); }
+
+  /* ---- toolbar ---- */
+  .toolbar {
+    position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px;
+    padding: 10px 14px; margin-bottom: 14px;
+    background: color-mix(in srgb, var(--panel) 92%, transparent); backdrop-filter: blur(6px);
+    border: 1px solid var(--line); border-radius: 10px;
+  }
+  .grup { display: flex; align-items: center; gap: 6px; min-width: 0; max-width: 100%; }
+  .grup > span { font-size: 12px; color: var(--ink-3); white-space: nowrap; }
+  .seg { display: flex; min-width: 0; border: 1px solid var(--line); border-radius: 6px; overflow-x: auto; scrollbar-width: none; }
+  .seg button { flex: none; }
+  .seg button {
+    width: auto; border: 0; border-radius: 0; padding: 4px 9px; font-size: 12px; font-weight: 500;
+    background: transparent; color: var(--ink-2);
+  }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
+  .seg button .n { font-family: var(--mono); opacity: .7; margin-left: 3px; }
+
+  .sakelar { display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; font-weight: 600; font-size: 13px; }
+  .sakelar input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .sakelar .rel { width: 32px; height: 18px; border-radius: 9px; background: var(--line); position: relative; transition: background .12s; flex: none; }
+  .sakelar .rel::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--panel); transition: translate .12s; }
+  .sakelar input:checked + .rel { background: var(--accent); }
+  .sakelar input:checked + .rel::after { translate: 14px 0; }
+  .sakelar input:focus-visible + .rel { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .sakelar small { font-weight: 400; color: var(--ink-3); }
+
+  .aksi-utama { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+  .ringkas { font: 12px var(--mono); color: var(--ink-2); white-space: nowrap; }
+  .ringkas .timpa { color: var(--accent); }
+  #btn-proses { width: auto; min-width: 150px; }
+  .progres { position: relative; min-width: 220px; height: 34px; border-radius: 6px; background: var(--bg); border: 1px solid var(--line); overflow: hidden; }
+  .progres .isi { position: absolute; inset: 0 auto 0 0; background: color-mix(in srgb, var(--accent) 30%, transparent); transition: width .3s; }
+  .progres span { position: relative; display: flex; height: 100%; align-items: center; justify-content: center; font: 12px var(--mono); }
+
+  /* ---- lembar kontak ---- */
+  .lembar { display: grid; grid-template-columns: repeat(auto-fill, minmax(138px, 1fr)); gap: 14px; }
+  .kartu { position: relative; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .kartu .frame { max-width: none; border-width: 4px; }
+  .kartu .frame img { object-fit: contain; }
+  .kartu.selesai .frame { border-color: var(--save); }
+  .kartu.gagal .frame { border-color: #b91c1c; }
+  .kartu.dilewati .frame img { opacity: .45; }
+  .tanda {
+    position: absolute; right: 5px; top: 5px; width: 22px; height: 22px; border-radius: 50%;
+    display: grid; place-items: center; font: 700 12px var(--mono); color: #fff;
+  }
+  .kartu.selesai .tanda { background: var(--save); }
+  .kartu.gagal .tanda { background: #b91c1c; }
+  .hapus {
+    position: absolute; left: 5px; top: 5px; width: 22px; height: 22px; padding: 0; border-radius: 50%;
+    background: var(--frame); color: #fff; font-size: 14px; line-height: 1; opacity: 0; transition: opacity .12s;
+  }
+  .kartu:hover .hapus, .hapus:focus-visible { opacity: .85; }
+  .kartu-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 0 6px; }
+  .kartu-head b { font: 600 13px var(--mono); letter-spacing: .03em; white-space: nowrap; }
+  .db { font: 10px var(--mono); color: var(--ink-3); white-space: nowrap; }
+  .db.baru { color: var(--accent); font-weight: 600; }
+
+  /* slot mini: ke mana foto ini akan ditulis */
+  .chips { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+  .chip {
+    width: 100%; padding: 4px 0; font: 600 11px var(--mono); border-radius: 4px;
+    background: transparent; color: var(--ink-3); border: 1px dashed var(--line);
+  }
+  .chip[aria-pressed="true"] { background: var(--ink); color: var(--panel); border: 1px solid var(--ink); }
+  .chip[aria-pressed="true"].timpa { background: var(--bad-bg); color: #b91c1c; border: 1px solid var(--bad-line); }
+  .chip[aria-pressed="true"].timpa::after { content: " timpa"; font-weight: 500; }
+  .chip.enh[aria-pressed="true"]::before { content: "✦ "; color: var(--accent); }
+  .chip:disabled { cursor: not-allowed; }
+  .pesan-kartu { font-size: 11px; line-height: 1.3; color: var(--ink-3); min-height: 14px; overflow-wrap: anywhere; }
+  .kartu.selesai .pesan-kartu { color: var(--save); }
+  .kartu.gagal .pesan-kartu { color: #b91c1c; }
+
+  .kosong-filter { grid-column: 1 / -1; text-align: center; color: var(--ink-3); padding: 30px 0; }
+
+  @media (prefers-color-scheme: dark) {
+    .kartu.gagal .frame, .kartu.gagal .tanda { border-color: #f87171; }
+    .chip[aria-pressed="true"].timpa, .kartu.gagal .pesan-kartu { color: #fca5a5; }
+  }
+  @media (max-width: 760px) {
+    .aksi-utama { margin-left: 0; width: 100%; justify-content: space-between; }
+    .lembar { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 10px; }
+    .sakelar small { display: none; }
+    .toolbar { gap: 8px 12px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .meja, .sakelar .rel, .sakelar .rel::after, .progres .isi, .hapus { transition: none; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+  <div class="status" id="status" role="status" hidden></div>
+
+  <section class="meja kosong-meja" id="meja" aria-label="Unggah foto">
+    <svg class="ikon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M12 10v6M9 13l3-3 3 3"/></svg>
+    <h2>Seret folder atau foto ke sini</h2>
+    <p>Nama file = NIM, misalnya <code>20126001.jpg</code> · JPEG / PNG · maks 15 MB per foto</p>
+    <div class="tombol">
+      <button type="button" id="btn-pilih-foto">Pilih foto</button>
+      <button type="button" class="halus" id="btn-pilih-folder">Pilih folder</button>
+    </div>
+    <span class="unggah-progres" id="unggah-progres" hidden></span>
+    <input type="file" id="input-foto" multiple accept="image/jpeg,image/png">
+    <input type="file" id="input-folder" webkitdirectory multiple>
+  </section>
+
+  <details class="ditolak" id="ditolak" hidden>
+    <summary></summary>
+    <ul></ul>
+  </details>
+
+  <section class="toolbar" id="toolbar" hidden aria-label="Pilihan proses">
+    <div class="grup">
+      <span>Tampilkan</span>
+      <div class="seg" id="filter">
+        <button type="button" data-f="semua" aria-pressed="true">Semua<span class="n"></span></button>
+        <button type="button" data-f="baru" aria-pressed="false">NIM baru<span class="n"></span></button>
+        <button type="button" data-f="timpa" aria-pressed="false">Menimpa<span class="n"></span></button>
+        <button type="button" data-f="gagal" aria-pressed="false">Gagal<span class="n"></span></button>
+      </div>
+    </div>
+    <div class="grup">
+      <span>foto1</span>
+      <div class="seg" data-pilih="f1">
+        <button type="button" data-m="kosong">Yang kosong</button>
+        <button type="button" data-m="semua">Semua</button>
+        <button type="button" data-m="tidak">Tidak</button>
+      </div>
+    </div>
+    <div class="grup">
+      <span>foto2</span>
+      <div class="seg" data-pilih="f2">
+        <button type="button" data-m="kosong">Yang kosong</button>
+        <button type="button" data-m="semua">Semua</button>
+        <button type="button" data-m="tidak">Tidak</button>
+      </div>
+    </div>
+    <label class="sakelar">
+      <input type="checkbox" id="enhance">
+      <span class="rel"></span>
+      Enhance foto2 <small>foto1 asli · foto2 hasil enhance · GPU</small>
+    </label>
+    <div class="aksi-utama">
+      <span class="ringkas" id="ringkas"></span>
+      <button type="button" id="btn-proses" disabled>Proses</button>
+      <div class="progres" id="progres" hidden><div class="isi"></div><span></span></div>
+      <button type="button" class="halus" id="btn-bersih" style="width:auto">Bersihkan selesai</button>
+    </div>
+  </section>
+
+  <section class="lembar" id="lembar" aria-label="Foto yang diunggah"></section>
+{% endblock %}
+
+{% block script %}
+  var items = [];             // dari server: nim, nama, terdaftar, ada_foto1, ada_foto2, hasil, pesan
+  var pilihan = {};           // nim -> {f1: bool, f2: bool} (pilihan pengguna, hanya di browser)
+  var filter = "semua";
+  var berjalan = false, sekarang = null, timerStatus = null;
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  function tampilStatus(teks, jenis) {
+    var el = $("status");
+    el.className = "status " + (jenis || "info");
+    el.textContent = teks;
+    el.hidden = !teks;
+  }
+
+  async function api(url, opsi) {
+    var res = await fetch(url, opsi);
+    var data = await res.json().catch(function () { return {}; });
+    if (!res.ok) throw new Error(data.detail || ("HTTP " + res.status));
+    return data;
+  }
+
+  function postJson(url, body) {
+    return api(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  }
+
+  // ---------- data ----------
+  async function muat() {
+    var data = await api("/massal/daftar");
+    items = data.items;
+    items.forEach(function (it) {
+      // default aman: hanya kolom yang masih kosong; yang sudah selesai tidak dipilih lagi
+      if (!pilihan[it.nim] || it.hasil === "ok") {
+        pilihan[it.nim] = it.hasil === "ok" ? { f1: false, f2: false } : { f1: !it.ada_foto1, f2: !it.ada_foto2 };
+      }
+    });
+    Object.keys(pilihan).forEach(function (n) { if (!items.some(function (it) { return it.nim === n; })) delete pilihan[n]; });
+    setJob(data.job);
+    render();
+  }
+
+  function timpa(it) {
+    var p = pilihan[it.nim];
+    return (p.f1 && it.ada_foto1) || (p.f2 && it.ada_foto2);
+  }
+
+  function lolosFilter(it) {
+    if (filter === "baru") return !it.terdaftar;
+    if (filter === "timpa") return timpa(it);
+    if (filter === "gagal") return it.hasil === "gagal";
+    return true;
+  }
+
+  // ---------- render ----------
+  function render() {
+    var ada = items.length > 0;
+    $("meja").classList.toggle("kosong-meja", !ada);
+    $("toolbar").hidden = !ada;
+
+    var hitung = { semua: items.length, baru: 0, timpa: 0, gagal: 0 };
+    var nf1 = 0, nf2 = 0, nproses = 0;
+    items.forEach(function (it) {
+      var p = pilihan[it.nim];
+      if (!it.terdaftar) hitung.baru++;
+      if (timpa(it)) hitung.timpa++;
+      if (it.hasil === "gagal") hitung.gagal++;
+      if (p.f1) nf1++;
+      if (p.f2) nf2++;
+      if (p.f1 || p.f2) nproses++;
+    });
+    document.querySelectorAll("#filter button").forEach(function (b) {
+      b.setAttribute("aria-pressed", b.dataset.f === filter);
+      b.querySelector(".n").textContent = hitung[b.dataset.f];
+    });
+
+    var enh = $("enhance").checked;
+    var r = $("ringkas");
+    r.textContent = "→ foto1 " + nf1 + " · foto2 " + nf2 + (enh && nf2 ? " ✦" : "");
+    if (hitung.timpa) {
+      var t = document.createElement("span");
+      t.className = "timpa";
+      t.textContent = " · " + hitung.timpa + " menimpa";
+      r.append(t);
+    }
+    var btn = $("btn-proses");
+    btn.disabled = berjalan || nproses === 0;
+    btn.hidden = berjalan;
+    $("progres").hidden = !berjalan;
+    $("btn-bersih").hidden = berjalan || !items.some(function (it) { return it.hasil === "ok"; });
+    if (!btn.dataset.siap) btn.textContent = nproses ? "Proses " + nproses + " foto" : "Pilih foto1/foto2";
+
+    var lembar = $("lembar");
+    lembar.textContent = "";
+    var tampil = items.filter(lolosFilter);
+    if (ada && !tampil.length) {
+      var k = document.createElement("p");
+      k.className = "kosong-filter";
+      k.textContent = "Tidak ada foto untuk filter ini";
+      lembar.append(k);
+    }
+    tampil.forEach(function (it) { lembar.append(kartu(it, enh)); });
+  }
+
+  function kartu(it, enh) {
+    var p = pilihan[it.nim];
+    var el = document.createElement("article");
+    el.className = "kartu" + (it.hasil === "ok" ? " selesai" : it.hasil === "gagal" ? " gagal" : "")
+      + (!p.f1 && !p.f2 && !it.hasil ? " dilewati" : "");
+    el.title = it.nama;
+
+    var frame = document.createElement("div");
+    frame.className = "frame" + (berjalan && sekarang === it.nim ? " memproses" : "");
+    var img = document.createElement("img");
+    img.loading = "lazy";
+    img.alt = "foto " + it.nim;
+    img.src = "/massal/foto/" + encodeURIComponent(it.nim) + "?v=" + it.versi;
+    frame.append(img);
+    if (it.hasil) {
+      var tanda = document.createElement("span");
+      tanda.className = "tanda";
+      tanda.textContent = it.hasil === "ok" ? "✓" : "!";
+      frame.append(tanda);
+    }
+    if (!berjalan) {
+      var hapus = document.createElement("button");
+      hapus.type = "button";
+      hapus.className = "hapus";
+      hapus.textContent = "×";
+      hapus.setAttribute("aria-label", "Keluarkan " + it.nim + " dari daftar");
+      hapus.onclick = function () { keluarkan([it.nim]); };
+      frame.append(hapus);
+    }
+    el.append(frame);
+
+    var head = document.createElement("div");
+    head.className = "kartu-head";
+    var b = document.createElement("b");
+    b.textContent = it.nim;
+    var db = document.createElement("span");
+    if (!it.terdaftar) { db.className = "db baru"; db.textContent = "NIM baru"; }
+    else { db.className = "db"; db.textContent = "f1 " + (it.ada_foto1 ? "✓" : "–") + " f2 " + (it.ada_foto2 ? "✓" : "–"); }
+    head.append(b, db);
+    el.append(head);
+
+    var chips = document.createElement("div");
+    chips.className = "chips";
+    [["f1", "foto1", it.ada_foto1], ["f2", "foto2", it.ada_foto2]].forEach(function (c) {
+      var chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "chip" + (c[2] ? " timpa" : "") + (c[0] === "f2" && enh ? " enh" : "");
+      chip.textContent = c[1];
+      chip.setAttribute("aria-pressed", p[c[0]]);
+      chip.setAttribute("aria-label", c[1] + " untuk " + it.nim + (c[2] ? " (sudah ada, akan ditimpa)" : ""));
+      chip.disabled = berjalan;
+      chip.onclick = function () { p[c[0]] = !p[c[0]]; batalKonfirmasi(); render(); };
+      chips.append(chip);
+    });
+    el.append(chips);
+
+    var pesan = document.createElement("div");
+    pesan.className = "pesan-kartu";
+    pesan.textContent = it.pesan || "";
+    el.append(pesan);
+    return el;
+  }
+
+  // ---------- upload ----------
+  var EKSTENSI = /\.(jpe?g|png)$/i;
+
+  async function unggah(files) {
+    if (berjalan) { tampilStatus("Tunggu proses selesai sebelum mengunggah lagi", "gagal"); return; }
+    var foto = [], ditolak = [];
+    files.forEach(function (f) {
+      var nama = f.webkitRelativePath || f.name;
+      if (EKSTENSI.test(f.name)) foto.push(f);
+      else if (!/^(thumbs\.db|desktop\.ini|\.ds_store)$/i.test(f.name)) ditolak.push({ nama: nama, alasan: "bukan file foto (jpg/jpeg/png)" });
+    });
+    var prog = $("unggah-progres");
+    prog.hidden = false;
+    var diterima = 0, diganti = 0;
+    try {
+      for (var i = 0; i < foto.length; i += 25) {
+        prog.textContent = "Mengunggah " + Math.min(i + 25, foto.length) + "/" + foto.length + "…";
+        var fd = new FormData();
+        foto.slice(i, i + 25).forEach(function (f) { fd.append("files", f, f.name); });
+        var hasil = await api("/massal/upload", { method: "POST", body: fd });
+        diterima += hasil.diterima.length;
+        diganti += hasil.diterima.filter(function (d) { return d.diganti; }).length;
+        ditolak = ditolak.concat(hasil.ditolak);
+      }
+    } catch (e) {
+      tampilStatus("Upload gagal: " + e.message, "gagal");
+    } finally {
+      prog.hidden = true;
+    }
+    tampilDitolak(ditolak);
+    if (diterima) {
+      tampilStatus(diterima + " foto masuk meja" + (diganti ? " (" + diganti + " mengganti foto dengan NIM sama)" : "")
+        + (ditolak.length ? " · " + ditolak.length + " dilewati" : ""), "ok");
+    } else if (ditolak.length) {
+      tampilStatus("Tidak ada foto yang bisa diunggah", "gagal");
+    }
+    await muat();
+  }
+
+  function tampilDitolak(list) {
+    var d = $("ditolak");
+    d.hidden = !list.length;
+    if (!list.length) return;
+    d.querySelector("summary").textContent = list.length + " file dilewati";
+    var ul = d.querySelector("ul");
+    ul.textContent = "";
+    list.forEach(function (x) {
+      var li = document.createElement("li");
+      var s = document.createElement("span");
+      s.textContent = x.nama;
+      li.append(s, " — " + x.alasan);
+      ul.append(li);
+    });
+  }
+
+  // folder yang diseret: telusuri isinya (termasuk subfolder)
+  function bacaEntry(entry) {
+    return new Promise(function (resolve) {
+      if (entry.isFile) { entry.file(function (f) { resolve([f]); }, function () { resolve([]); }); return; }
+      if (!entry.isDirectory) { resolve([]); return; }
+      var reader = entry.createReader(), semua = [];
+      (function baca() {
+        reader.readEntries(async function (batch) {
+          if (!batch.length) {
+            var isi = await Promise.all(semua.map(bacaEntry));
+            resolve([].concat.apply([], isi));
+            return;
+          }
+          semua = semua.concat(Array.from(batch));
+          baca();
+        }, function () { resolve([]); });
+      })();
+    });
+  }
+
+  $("btn-pilih-foto").onclick = function () { $("input-foto").click(); };
+  $("btn-pilih-folder").onclick = function () { $("input-folder").click(); };
+  ["input-foto", "input-folder"].forEach(function (id) {
+    $(id).addEventListener("change", function (e) {
+      var files = Array.from(e.target.files);
+      e.target.value = "";
+      if (files.length) unggah(files);
+    });
+  });
+
+  var meja = $("meja"), hitungSeret = 0;
+  document.addEventListener("dragenter", function (e) { e.preventDefault(); hitungSeret++; meja.classList.add("seret"); });
+  document.addEventListener("dragover", function (e) { e.preventDefault(); });
+  document.addEventListener("dragleave", function () { if (--hitungSeret <= 0) { hitungSeret = 0; meja.classList.remove("seret"); } });
+  document.addEventListener("drop", async function (e) {
+    e.preventDefault();
+    hitungSeret = 0;
+    meja.classList.remove("seret");
+    var entries = Array.from(e.dataTransfer.items || [])
+      .map(function (it) { return it.webkitGetAsEntry && it.webkitGetAsEntry(); })
+      .filter(Boolean);
+    var files = entries.length
+      ? [].concat.apply([], await Promise.all(entries.map(bacaEntry)))
+      : Array.from(e.dataTransfer.files);
+    if (files.length) unggah(files);
+  });
+
+  // ---------- pilihan ----------
+  document.querySelectorAll("#filter button").forEach(function (b) {
+    b.onclick = function () { filter = b.dataset.f; render(); };
+  });
+  document.querySelectorAll("[data-pilih]").forEach(function (seg) {
+    var kolom = seg.dataset.pilih;
+    seg.querySelectorAll("button").forEach(function (b) {
+      b.onclick = function () {
+        items.forEach(function (it) {
+          if (it.hasil === "ok") return;
+          var ada = kolom === "f1" ? it.ada_foto1 : it.ada_foto2;
+          pilihan[it.nim][kolom] = b.dataset.m === "semua" ? true : b.dataset.m === "kosong" ? !ada : false;
+        });
+        batalKonfirmasi();
+        render();
+      };
+    });
+  });
+  $("enhance").addEventListener("change", render);
+
+  async function keluarkan(nims) {
+    try { await postJson("/massal/hapus", { nims: nims }); } catch (e) { tampilStatus(e.message, "gagal"); }
+    await muat();
+  }
+  $("btn-bersih").onclick = async function () {
+    try { await postJson("/massal/hapus", { selesai: true }); } catch (e) { tampilStatus(e.message, "gagal"); }
+    await muat();
+  };
+
+  // ---------- proses ----------
+  var timerKonfirmasi = null;
+  function batalKonfirmasi() {
+    var btn = $("btn-proses");
+    delete btn.dataset.siap;
+    btn.classList.remove("waspada");
+    clearTimeout(timerKonfirmasi);
+  }
+
+  $("btn-proses").onclick = async function () {
+    var btn = this;
+    var dipilih = items.filter(function (it) { var p = pilihan[it.nim]; return p.f1 || p.f2; });
+    var nTimpa = dipilih.filter(timpa).length;
+    // menimpa foto yang sudah ada: klik pertama hanya meminta konfirmasi
+    if (nTimpa && !btn.dataset.siap) {
+      btn.dataset.siap = "1";
+      btn.classList.add("waspada");
+      btn.textContent = "Timpa " + nTimpa + " foto? Klik lagi";
+      timerKonfirmasi = setTimeout(function () { batalKonfirmasi(); render(); }, 5000);
+      return;
+    }
+    batalKonfirmasi();
+    btn.disabled = true;
+    try {
+      var hasil = await postJson("/massal/proses", {
+        enhance: $("enhance").checked,
+        items: dipilih.map(function (it) { return { nim: it.nim, foto1: pilihan[it.nim].f1, foto2: pilihan[it.nim].f2 }; }),
+      });
+      tampilStatus("Memproses " + hasil.total + " foto" + (hasil.enhance ? " dengan enhance foto2" : "") + "…", "info");
+      dipilih.forEach(function (it) { it.hasil = null; it.pesan = ""; });
+      setJob({ berjalan: true, total: hasil.total, selesai: 0, sekarang: null });
+      render();
+    } catch (e) {
+      tampilStatus(e.message, "gagal");
+      render();
+    }
+  };
+
+  function setJob(job) {
+    var dulu = berjalan;
+    berjalan = job.berjalan;
+    sekarang = job.sekarang;
+    var p = $("progres");
+    var persen = job.total ? Math.round(job.selesai / job.total * 100) : 0;
+    p.querySelector(".isi").style.width = persen + "%";
+    p.querySelector("span").textContent = job.selesai + "/" + job.total + (job.sekarang ? " · " + job.sekarang : "");
+    if (berjalan && !timerStatus) timerStatus = setInterval(pantau, 800);
+    if (!berjalan && timerStatus) { clearInterval(timerStatus); timerStatus = null; }
+    return dulu && !berjalan;
+  }
+
+  async function pantau() {
+    try {
+      var data = await api("/massal/status");
+      items.forEach(function (it) {
+        var h = data.hasil[it.nim];
+        if (h) { it.hasil = h[0]; it.pesan = h[1]; }
+      });
+      if (setJob(data.job)) {
+        var ok = items.filter(function (it) { return it.hasil === "ok"; }).length;
+        var gagal = items.filter(function (it) { return it.hasil === "gagal"; }).length;
+        tampilStatus("Selesai: " + ok + " berhasil" + (gagal ? ", " + gagal + " gagal" : ""), gagal ? "gagal" : "ok");
+        await muat();  // segarkan status foto1/foto2 dari database
+      } else {
+        render();
+      }
+    } catch (e) { /* coba lagi pada interval berikutnya */ }
+  }
+
+  muat().catch(function (e) { tampilStatus("Gagal memuat daftar: " + e.message, "gagal"); });
+{% endblock %}

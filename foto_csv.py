@@ -8,11 +8,12 @@ def connect_db():
     try:
         # Konfigurasi koneksi database
         conn = psycopg2.connect(
-            dbname="",
-            user="",
-            password="",
-            host="",
-            port=""
+            dbname="dbstain",
+            user="taqiem",
+            password="taqiem",
+            host="10.10.3.6",
+            port="5432",
+            options="-c search_path=foto"
         )
         print("Database connected")
         return conn

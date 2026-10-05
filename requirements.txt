@@ -5,3 +5,8 @@ numpy
 Pillow
 gfpgan
 pytest
+fastapi
+uvicorn[standard]
+jinja2
+httpx
+python-multipart

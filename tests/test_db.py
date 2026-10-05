@@ -35,6 +35,23 @@ def test_get_pending_nims_with_limit_passes_param():
     assert params == (50,)
 
 
+def test_get_pending_nims_with_nim_like_passes_param():
+    conn, cursor = _mock_conn([])
+    get_pending_nims(conn, nim_like="%26___")
+    sql, params = cursor.execute.call_args[0]
+    assert "AND nim LIKE" in sql
+    assert params == ("%26___",)
+
+
+def test_get_pending_nims_with_nim_like_and_limit_passes_both_params():
+    conn, cursor = _mock_conn([])
+    get_pending_nims(conn, nim_like="%26___", limit=50)
+    sql, params = cursor.execute.call_args[0]
+    assert "AND nim LIKE" in sql
+    assert "LIMIT" in sql
+    assert params == ("%26___", 50)
+
+
 def test_fetch_foto1_returns_bytes():
     from enhancer.db import fetch_foto1
 
@@ -91,6 +108,21 @@ def test_write_foto2_creates_lobject_and_updates_row():
     sql, params = cursor.execute.call_args[0]
     assert "UPDATE foto.md_foto SET foto2" in sql
     assert params == (999, "111")
+
+
+def test_insert_nim_inserts_with_on_conflict_do_nothing():
+    from enhancer.db import insert_nim
+
+    conn = MagicMock()
+    cursor = MagicMock()
+    conn.cursor.return_value.__enter__.return_value = cursor
+
+    insert_nim(conn, "111")
+
+    sql, params = cursor.execute.call_args[0]
+    assert "INSERT INTO foto.md_foto (nim)" in sql
+    assert "ON CONFLICT (nim) DO NOTHING" in sql
+    assert params == ("111",)
 
 
 def test_log_result_upserts():

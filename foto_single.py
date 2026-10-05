@@ -7,11 +7,12 @@ def connect_db():
     try:
         # Konfigurasi koneksi database
         conn = psycopg2.connect(
-            dbname="",
-            user="",
-            password="",
-            host="",
-            port=""
+            dbname="dbstain",
+            user="taqiem",
+            password="taqiem",
+            host="10.10.3.6",
+            port="5432",
+            options="-c search_path=foto"
         )
         print("Database connected")
         return conn
@@ -57,7 +58,7 @@ def main():
         return
 
     # Ambil OID dari kolom foto1 dan foto2 menggunakan NIM
-    nim = '60324052'  # Ganti dengan NIM mahasiswa yang ingin diambil
+    nim = '20326030'  # Ganti dengan NIM mahasiswa yang ingin diambil
     try:
         with conn.cursor() as cursor:
             query = f"SELECT foto1, foto2 FROM foto.md_foto WHERE nim = '{nim}'"
@@ -71,12 +72,11 @@ def main():
             folder_path = os.path.join("Download")
 
             # Proses pengambilan dan penyimpanan untuk masing-masing foto
-            if oid_foto1 is not None:
-                fetch_and_save_lob(
-                    conn, oid_foto1, folder_path, f"{nim}.jpeg")
-            elif oid_foto2 is not None:
-                fetch_and_save_lob(
-                    conn, oid_foto2, folder_path, f"{nim}.jpeg")
+            # if oid_foto1 is not None:
+            fetch_and_save_lob(
+                conn, oid_foto1, folder_path, f"{nim}.jpeg")
+            # elif oid_foto2 is not None:
+            # fetch_and_save_lob(conn, oid_foto2, folder_path, f"{nim}.jpeg")
 
         else:
             print("Tidak ada data OID yang ditemukan.")
