@@ -244,3 +244,26 @@ def test_salin_with_empty_foto1_does_nothing(mock_f1, mock_replace2, client):
 
     assert "jenis=gagal" in resp.headers["location"]
     mock_replace2.assert_not_called()
+
+
+@patch("web.app.get_restorer", return_value=MagicMock())
+@patch("web.app.enhance", return_value=b"filtered")
+@patch("web.app.fetch_foto2", return_value=None)
+@patch("web.app.fetch_foto1", return_value=b"before")
+def test_filter_settings_pass_to_pipeline_and_survive_redirect(f1, f2, enhance, restorer, client):
+    resp = client.post("/enhance/20126001", data={"brightness": "25", "smoothness": "0"})
+    assert resp.status_code == 200
+    assert enhance.call_args.kwargs["brightness"] == 25
+    assert enhance.call_args.kwargs["smoothness"] == 0
+    assert 'value="25.0"' in resp.text
+    assert client.get("/preview/20126001").content == b"filtered"
+    client.post("/batal/20126001")
+    assert "20126001" not in web_app.preview_settings
+
+
+@pytest.mark.parametrize("value", ["81", "-81", "nan", "inf", "abc"])
+@patch("web.app.enhance")
+def test_invalid_filter_rejected_before_processing(enhance, client, value):
+    resp = client.post("/enhance/20126001", data={"brightness": value})
+    assert resp.status_code == 422
+    enhance.assert_not_called()

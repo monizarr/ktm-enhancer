@@ -163,3 +163,22 @@ button.waspada { background: var(--bad-bg); border-color: var(--bad-line); color
 }
 .nav a:hover { color: var(--ink); }
 .nav a[aria-current="page"] { background: var(--panel); color: var(--ink); box-shadow: 0 1px 2px rgb(0 0 0 / .12); }
+
+/* Kontrol filter mengikuti warna dan tipografi halaman yang ada. */
+.filter-panel { margin-top: 24px; padding: 24px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+.filter-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
+.filter-heading h2 { margin: 0; font-size: 16px; }
+.filter-heading p, .filter-note { color: var(--ink-2); font-size: 13px; line-height: 1.6; }
+.filter-heading button { width: auto; }
+.filter-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px 32px; margin: 20px 0; }
+.filter-control label { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
+.filter-control output { font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.filter-control input { width: 100%; margin: 12px 0 0; accent-color: var(--accent); }
+.filter-note { margin-bottom: 0; }
+@media (max-width: 760px) { .filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .filter-heading { flex-direction: column; } }
+@media (max-width: 420px) { .filter-grid { grid-template-columns: 1fr; } }
+
+.filter-presets { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.filter-presets button { width: auto; flex-direction: column; align-items: flex-start; gap: 3px; padding: 10px 16px; }
+.filter-presets small { font-size: 11px; font-weight: 400; }
+.filter-presets button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }

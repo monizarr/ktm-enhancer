@@ -49,3 +49,19 @@ def test_encode_jpeg_roundtrip_decodable():
     decoded_again = decode_jpeg(encoded)
     height, width = decoded_again.shape[:2]
     assert (width, height) == TARGET_SIZE
+
+
+def test_filters_neutral_preserves_pixels_and_brightness_clips():
+    from enhancer.pipeline import apply_filters
+    img = np.full((8, 8, 3), 240, dtype=np.uint8)
+    assert np.array_equal(apply_filters(img), img)
+    assert np.all(apply_filters(img, brightness=80) == 255)
+    assert np.all(apply_filters(np.zeros_like(img), brightness=-80) == 0)
+
+
+def test_zero_saturation_removes_color():
+    from enhancer.pipeline import apply_filters
+    img = np.full((8, 8, 3), (20, 80, 160), dtype=np.uint8)
+    result = apply_filters(img, saturation=0)
+    assert np.array_equal(result[:, :, 0], result[:, :, 1])
+    assert np.array_equal(result[:, :, 1], result[:, :, 2])

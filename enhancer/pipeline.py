@@ -12,14 +12,18 @@ def decode_jpeg(image_bytes):
     return cv2.imdecode(arr, cv2.IMREAD_COLOR)
 
 
-def denoise(img):
-    return cv2.fastNlMeansDenoisingColored(img, None, 10, 10, 7, 21)
+def denoise(img, strength=10):
+    if strength == 0:
+        return img
+    return cv2.fastNlMeansDenoisingColored(img, None, strength, strength, 7, 21)
 
 
-def correct_lighting(img):
+def correct_lighting(img, strength=2.0):
+    if strength == 0:
+        return img
     lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
     l_channel, a_channel, b_channel = cv2.split(lab)
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    clahe = cv2.createCLAHE(clipLimit=strength, tileGridSize=(8, 8))
     l_channel = clahe.apply(l_channel)
     lab = cv2.merge((l_channel, a_channel, b_channel))
     return cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
@@ -57,10 +61,28 @@ def restore_face(img, restorer):
     return restored_img
 
 
-def enhance(image_bytes, restorer):
+def apply_filters(img, brightness=0, contrast=1.0, saturation=1.0, sharpness=0):
+    # Adjust around mid-gray; clip instead of wrapping negative pixel values.
+    adjusted = (img.astype(np.float32) - 127.5) * contrast + 127.5 + brightness
+    img = np.clip(adjusted, 0, 255).astype(np.uint8)
+    if saturation != 1:
+        hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV).astype(np.float32)
+        hsv[:, :, 1] = np.clip(hsv[:, :, 1] * saturation, 0, 255)
+        img = cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2BGR)
+    if sharpness:
+        blurred = cv2.GaussianBlur(img, (0, 0), 1.0)
+        img = cv2.addWeighted(img, 1 + sharpness, blurred, -sharpness, 0)
+    return img
+
+
+def enhance(image_bytes, restorer, *, brightness=0, contrast=1.0,
+            smoothness=10, saturation=1.0, sharpness=0, lighting=2.0):
     img = decode_jpeg(image_bytes)
-    img = denoise(img)
-    img = correct_lighting(img)
+    if img is None:
+        raise ValueError("Foto tidak dapat dibaca")
+    img = denoise(img, smoothness)
+    img = correct_lighting(img, lighting)
     img = restore_face(img, restorer)
     img = resize_final(img)
+    img = apply_filters(img, brightness, contrast, saturation, sharpness)
     return encode_jpeg(img)

@@ -2,7 +2,7 @@ import os
 import time
 from urllib.parse import urlencode
 
-from fastapi import FastAPI, File, HTTPException, Request, UploadFile
+from fastapi import FastAPI, Form, File, HTTPException, Request, UploadFile
 from fastapi.responses import RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 
@@ -27,6 +27,15 @@ app.include_router(batch_router)
 
 # Hasil enhance yang belum disimpan, per NIM. Hanya di memori (aplikasi lokal, satu pengguna).
 previews = {}
+preview_settings = {}
+FILTER_CONTROLS = [
+    ("brightness", "Brightness", -80, 80, 1, 0),
+    ("contrast", "Kontras", 0.5, 2, 0.05, 1),
+    ("smoothness", "Smoothness", 0, 20, 1, 10),
+    ("saturation", "Saturasi", 0, 2, 0.05, 1),
+    ("sharpness", "Ketajaman", 0, 2, 0.1, 0),
+    ("lighting", "Koreksi cahaya otomatis", 0, 4, 0.1, 2),
+]
 
 
 def redirect_home(nim, pesan=None, jenis="info"):
@@ -46,6 +55,8 @@ def index(request: Request, nim: str = "", pesan: str = "", jenis: str = "info")
     if jenis not in ("info", "ok", "gagal"):
         jenis = "info"
     context = {
+        "filter_controls": FILTER_CONTROLS,
+        "settings": preview_settings.get(nim.strip(), {}),
         "nim": "", "pesan": pesan, "jenis": jenis, "terdaftar": False,
         "ada_foto1": False, "ada_foto2": False, "ada_preview": False,
     }
@@ -88,7 +99,15 @@ def preview(nim: str):
 
 
 @app.post("/enhance/{nim}")
-def enhance_nim(nim: str):
+def enhance_nim(
+    nim: str,
+    brightness: float = Form(0, ge=-80, le=80, allow_inf_nan=False),
+    contrast: float = Form(1, ge=0.5, le=2, allow_inf_nan=False),
+    smoothness: float = Form(10, ge=0, le=20, allow_inf_nan=False),
+    saturation: float = Form(1, ge=0, le=2, allow_inf_nan=False),
+    sharpness: float = Form(0, ge=0, le=2, allow_inf_nan=False),
+    lighting: float = Form(2, ge=0, le=4, allow_inf_nan=False),
+):
     nim = check_nim(nim)
     conn = connect_db()
     try:
@@ -100,7 +119,10 @@ def enhance_nim(nim: str):
 
     try:
         with gpu_lock:
-            previews[nim] = enhance(before, get_restorer())
+            settings = dict(brightness=brightness, contrast=contrast, smoothness=smoothness,
+                            saturation=saturation, sharpness=sharpness, lighting=lighting)
+            previews[nim] = enhance(before, get_restorer(), **settings)
+            preview_settings[nim] = settings
     except Exception as exc:  # noqa: BLE001 - tampilkan error ke pengguna, jangan crash server
         return redirect_home(nim, f"Enhance gagal: {exc}", "gagal")
     return redirect_home(nim, "Preview siap. Periksa lalu klik Simpan ke foto2.")
@@ -127,6 +149,7 @@ def simpan(nim: str):
         conn.close()
 
     del previews[nim]
+    preview_settings.pop(nim, None)
     return redirect_home(nim, "foto2 berhasil disimpan", "ok")
 
 
@@ -134,6 +157,7 @@ def simpan(nim: str):
 def batal(nim: str):
     nim = check_nim(nim)
     previews.pop(nim, None)
+    preview_settings.pop(nim, None)
     return redirect_home(nim, "Preview dibatalkan")
 
 

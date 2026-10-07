@@ -218,3 +218,28 @@ py foto_csv.py       # unduh banyak NIM dari Input/md_foto.csv, simpan ke Output
 ```
 
 > Catatan: kredensial database di kedua skrip ini di-hardcode dengan host `10.10.3.6`, berbeda dari host di `.env` (`192.168.151.24`). Sesuaikan dulu jika servernya sudah pindah.
+
+
+### Pengaturan enhance di web (Per NIM)
+
+Setelah foto1 tersedia, panel **Pengaturan enhance** menyediakan brightness,
+kontras, smoothness (pengurangan noise), saturasi, ketajaman, dan koreksi cahaya
+otomatis. Klik **Enhance / Ulangi** setelah mengubah slider untuk membuat preview
+baru, lalu **Simpan ke foto2** setelah hasil sesuai. Pengaturan preview tetap tampil
+setelah proses selesai. **Reset default** mengembalikan nilai awal; klik Ulangi
+untuk menerapkannya. Nilai 0 mematikan smoothness, ketajaman, atau koreksi cahaya;
+saturasi 0 menghasilkan foto hitam putih. Foto1 tidak diubah. Halaman Massal dan
+CLI tetap menggunakan pengaturan default.
+
+
+Tiga preset tersedia pada panel pengaturan (urutan nilai: brightness, kontras,
+smoothness, saturasi, ketajaman, koreksi cahaya):
+
+- **Lembut**: `-30 / 0.8 / 4 / 1 / 0.2 / 1.5`, sesuai contoh pengaturan.
+- **Natural**: `0 / 1 / 3 / 1 / 0.2 / 1`, titik awal untuk warna seimbang.
+- **Cerah**: `15 / 1.05 / 4 / 1.05 / 0.3 / 1.5`, titik awal untuk foto agak gelap.
+
+Memilih preset mengisi keenam slider. Slider tetap dapat diubah; klik
+**Enhance / Ulangi** untuk menerapkannya. Preset yang cocok dengan nilai slider
+akan ditandai aktif, termasuk setelah preview selesai. Hasil bergantung pada foto
+sumber dan tetap perlu diperiksa sebelum disimpan.

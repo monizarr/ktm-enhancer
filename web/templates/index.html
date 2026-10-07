@@ -44,7 +44,7 @@
     <div class="sambung">
       <svg class="panah" width="28" height="16" viewBox="0 0 28 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M1 8h25M20 2l6 6-6 6"/></svg>
       {% if ada_foto1 %}
-      <form method="post" action="/enhance/{{ nim }}" data-proses="preview">
+      <form method="post" action="/enhance/{{ nim }}" id="form-enhance" data-proses="preview">
         <button type="submit" id="btn-enhance">{{ "Ulangi" if ada_preview else "Enhance" }} <kbd>E</kbd></button>
       </form>
       <form method="post" action="/salin/{{ nim }}" {% if ada_foto2 %}data-konfirmasi="Timpa foto2?"{% endif %}>
@@ -89,9 +89,68 @@
       <div class="slot-foot"></div>
     </div>
   </section>
+  {% if ada_foto1 %}
+  <section class="filter-panel" aria-labelledby="filter-title">
+    <div class="filter-heading">
+      <div><h2 id="filter-title">Pengaturan enhance</h2>
+      <p>Atur filter lalu klik Enhance / Ulangi untuk membuat preview baru. Foto asli tetap tersimpan.</p></div>
+      <button type="button" class="halus" id="reset-filter">Reset default</button>
+    </div>
+    <div class="filter-presets" role="group" aria-label="Preset enhance">
+      <button type="button" class="halus" data-preset="lembut" aria-pressed="false">Lembut <small>Sesuai contoh kamu</small></button>
+      <button type="button" class="halus" data-preset="natural" aria-pressed="false">Natural <small>Warna seimbang</small></button>
+      <button type="button" class="halus" data-preset="cerah" aria-pressed="false">Cerah <small>Untuk foto agak gelap</small></button>
+    </div>
+    <div class="filter-grid">
+      {% for name, label, minimum, maximum, step, default in filter_controls %}
+      <div class="filter-control">
+        <label for="filter-{{ name }}">{{ label }} <output for="filter-{{ name }}" id="value-{{ name }}">{{ settings.get(name, default) }}</output></label>
+        <input type="range" id="filter-{{ name }}" name="{{ name }}" min="{{ minimum }}" max="{{ maximum }}" step="{{ step }}" value="{{ settings.get(name, default) }}" data-default="{{ default }}" form="form-enhance">
+      </div>
+      {% endfor %}
+    </div>
+    <p class="filter-note" id="filter-note" role="status">Smoothness mengurangi noise sebelum restorasi wajah. Nilai 0 mematikan smoothness, ketajaman, atau koreksi cahaya otomatis.</p>
+  </section>
+  {% endif %}
 {% endblock %}
 
 {% block script %}
+  var filters = document.querySelectorAll(".filter-control input");
+  var presets = {
+    lembut: {brightness: -30, contrast: 0.8, smoothness: 4, saturation: 1, sharpness: 0.2, lighting: 1.5},
+    natural: {brightness: 0, contrast: 1, smoothness: 3, saturation: 1, sharpness: 0.2, lighting: 1},
+    cerah: {brightness: 15, contrast: 1.05, smoothness: 4, saturation: 1.05, sharpness: 0.3, lighting: 1.5}
+  };
+  var presetButtons = document.querySelectorAll("[data-preset]");
+  function markPreset() {
+    presetButtons.forEach(function (button) {
+      var values = presets[button.dataset.preset];
+      var active = Array.from(filters).every(function (input) {
+        return Math.abs(Number(input.value) - values[input.name]) < 0.0001;
+      });
+      button.setAttribute("aria-pressed", String(active));
+    });
+  }
+  presetButtons.forEach(function (button) {
+    button.addEventListener("click", function () {
+      var values = presets[button.dataset.preset];
+      filters.forEach(function (input) { input.value = values[input.name]; updateFilter(input); });
+    });
+  });
+  markPreset();
+  function updateFilter(input) {
+    markPreset();
+    document.getElementById("value-" + input.name).textContent = input.value;
+    var save = document.getElementById("btn-simpan");
+    if (save) { save.disabled = true; save.title = "Buat preview baru untuk menerapkan pengaturan"; }
+    document.getElementById("filter-note").textContent = "Pengaturan berubah. Klik Enhance / Ulangi untuk menerapkannya pada preview sebelum menyimpan.";
+  }
+  filters.forEach(function (input) { input.addEventListener("input", function () { updateFilter(input); }); });
+  var resetFilter = document.getElementById("reset-filter");
+  if (resetFilter) resetFilter.addEventListener("click", function () {
+    filters.forEach(function (input) { input.value = input.dataset.default; updateFilter(input); });
+  });
+
   // Tampilkan ukuran piksel asli tiap foto
   document.querySelectorAll("img[data-meta]").forEach(function (img) {
     function tulis() {
