@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Upload manual · KTM Enhancer{% endblock %}
+{% block content %}
+{% if pesan %}<div class="status {{ jenis }}" role="status">{{ pesan }}</div>{% endif %}
+<div class="judul"><h1>Upload manual</h1><p>Simpan foto ke sebuah NIM tanpa enhance, filter, atau resize.</p></div>
+<form action="/upload-manual" method="get" class="manual-search">
+  <label for="cek-nim">Cek foto NIM</label>
+  <input id="cek-nim" name="nim" value="{{ nim }}" maxlength="20" pattern="[0-9A-Za-z]{1,20}" required placeholder="Masukkan NIM">
+  <button type="submit" class="halus">Cek foto</button>
+</form>
+{% if nim %}
+<p>{% if terdaftar %}NIM {{ nim }} terdaftar.{% else %}NIM {{ nim }} akan dibuat saat upload berhasil.{% endif %}</p>
+<div class="manual-photos">
+{% for column, present in [("foto1", ada_foto1), ("foto2", ada_foto2)] %}
+<div class="slot"><div class="slot-head"><b>{{ column }}</b><span>{{ "Terisi" if present else "Kosong" }}</span></div>
+<div class="frame">{% if present %}<img src="/foto/{{ nim }}/{{ column }}?v={{ v }}" alt="{{ column }} NIM {{ nim }}">{% else %}<div class="kosong">Belum ada foto</div>{% endif %}</div></div>
+{% endfor %}
+</div>
+{% endif %}
+<form method="post" action="/upload-manual" enctype="multipart/form-data" class="manual-form" id="manual-upload">
+  <h2>Upload foto</h2>
+  <label for="upload-nim">NIM tujuan</label>
+  <input id="upload-nim" name="nim" value="{{ nim }}" maxlength="20" pattern="[0-9A-Za-z]{1,20}" required placeholder="Masukkan NIM">
+  <fieldset><legend>Simpan ke</legend>
+    <label><input type="radio" name="kolom" value="foto1" checked> foto1</label>
+    <label><input type="radio" name="kolom" value="foto2"> foto2</label>
+    <label><input type="radio" name="kolom" value="keduanya"> foto1 dan foto2</label>
+  </fieldset>
+  <label for="manual-file">Pilih foto</label>
+  <input id="manual-file" type="file" name="file" accept="image/jpeg,image/png" required>
+  <p class="filter-note">JPEG / PNG · maks 15 MB. JPEG disimpan apa adanya; PNG dikonversi ke JPEG tanpa filter atau resize.</p>
+  <img id="manual-preview" alt="Preview foto yang akan diupload" hidden>
+  <label><input type="checkbox" name="timpa" value="true"> Izinkan mengganti foto yang sudah terisi pada kolom tujuan</label>
+  <button type="submit" id="manual-submit">Upload foto</button>
+</form>
+{% endblock %}
+{% block script %}
+var fileInput = document.getElementById("manual-file");
+var photoPreview = document.getElementById("manual-preview");
+var previewUrl;
+fileInput.addEventListener("change", function () {
+  if (previewUrl) URL.revokeObjectURL(previewUrl);
+  photoPreview.hidden = true;
+  var file = fileInput.files[0];
+  fileInput.setCustomValidity(file && file.size > 15 * 1024 * 1024 ? "Ukuran foto maksimal 15 MB" : "");
+  if (file && file.size <= 15 * 1024 * 1024) {
+    previewUrl = URL.createObjectURL(file);
+    photoPreview.src = previewUrl;
+    photoPreview.hidden = false;
+  }
+});
+document.getElementById("manual-upload").addEventListener("submit", function (event) {
+  var tujuan = this.elements.kolom.value === "keduanya" ? "foto1 dan foto2" : this.elements.kolom.value;
+  if (this.elements.timpa.checked && !confirm("Ganti foto yang sudah ada pada " + tujuan + " untuk NIM " + this.elements.nim.value + "?")) {
+    event.preventDefault(); return;
+  }
+  var button = document.getElementById("manual-submit");
+  button.disabled = true; button.textContent = "Mengupload…";
+});
+{% endblock %}

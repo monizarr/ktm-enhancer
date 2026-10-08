@@ -243,3 +243,19 @@ Memilih preset mengisi keenam slider. Slider tetap dapat diubah; klik
 **Enhance / Ulangi** untuk menerapkannya. Preset yang cocok dengan nilai slider
 akan ditandai aktif, termasuk setelah preview selesai. Hasil bergantung pada foto
 sumber dan tetap perlu diperiksa sebelum disimpan.
+
+
+### Upload manual (`/upload-manual`)
+
+Tab **Upload manual** di samping Massal mengunggah satu foto ke NIM dan kolom
+**foto1** atau **foto2**. Gunakan **Cek foto** untuk melihat foto yang sudah ada,
+lalu isi NIM tujuan, pilih kolom dan file (JPEG/PNG, maks 15 MB). JPEG disimpan
+apa adanya; PNG dikonversi menjadi JPEG tanpa filter, enhance, atau resize.
+NIM baru dibuat otomatis. Foto yang sudah terisi hanya diganti jika izin timpa
+dicentang dan dikonfirmasi. Kolom lain tidak berubah. Preview enhance lama untuk
+NIM tersebut dibatalkan setelah upload berhasil. Fitur ini tidak membutuhkan GPU.
+
+
+Di **Upload manual**, pilihan **foto1 dan foto2** menyimpan foto yang sama ke kedua
+kolom dalam satu transaksi. Jika salah satu kolom sudah terisi, izin timpa wajib
+dicentang. Jika salah satu penyimpanan gagal, perubahan kedua kolom dibatalkan.

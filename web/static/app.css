@@ -182,3 +182,14 @@ button.waspada { background: var(--bad-bg); border-color: var(--bad-line); color
 .filter-presets button { width: auto; flex-direction: column; align-items: flex-start; gap: 3px; padding: 10px 16px; }
 .filter-presets small { font-size: 11px; font-weight: 400; }
 .filter-presets button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+
+.manual-search { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.manual-search button { width: auto; }
+.manual-search input, .manual-form input:not([type="radio"]):not([type="checkbox"]) { padding: 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); font: inherit; }
+.manual-photos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; max-width: 540px; margin: 24px 0; }
+.manual-form { display: flex; flex-direction: column; gap: 14px; max-width: 540px; margin-top: 24px; padding: 24px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+.manual-form h2 { margin: 0; font-size: 18px; }
+.manual-form fieldset { border: 1px solid var(--line); padding: 12px; }
+.manual-form fieldset label { margin-right: 24px; }
+.manual-form input:focus-visible { outline: 2px solid var(--accent); }
+#manual-preview { max-width: 240px; max-height: 320px; object-fit: contain; align-self: center; }

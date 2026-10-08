@@ -217,3 +217,78 @@ def salin(nim: str):
 
     return redirect_home(nim, "foto2 diisi salinan foto1 (tanpa enhance)", "ok")
 
+
+
+def redirect_manual(nim="", pesan="", jenis="info"):
+    return RedirectResponse("/upload-manual?" + urlencode(
+        dict(nim=nim, pesan=pesan, jenis=jenis)), status_code=303)
+
+
+@app.get("/upload-manual")
+def manual_page(request: Request, nim: str = "", pesan: str = "", jenis: str = "info"):
+    context = dict(halaman="manual", nim="", pesan=pesan,
+                   jenis=jenis if jenis in ("info", "ok", "gagal") else "info",
+                   terdaftar=False, ada_foto1=False, ada_foto2=False, v=time.time_ns())
+    if nim.strip():
+        nim = check_nim(nim)
+        context["nim"] = nim
+        try:
+            conn = connect_db()
+            try:
+                context["terdaftar"] = nim_exists(conn, nim)
+                context["ada_foto1"] = fetch_foto1(conn, nim) is not None
+                context["ada_foto2"] = fetch_foto2(conn, nim) is not None
+            finally:
+                conn.close()
+        except Exception:
+            context.update(pesan="Database belum dapat diakses. Coba lagi nanti.", jenis="gagal")
+    return templates.TemplateResponse(request, "manual.html", context)
+
+
+@app.post("/upload-manual")
+async def manual_upload(nim: str = Form(...), kolom: str = Form(...),
+                        file: UploadFile = File(...), timpa: bool = Form(False)):
+    nim = check_nim(nim)
+    if kolom not in ("foto1", "foto2", "keduanya"):
+        raise HTTPException(status_code=400, detail="Pilih foto1, foto2, atau keduanya")
+    targets = ("foto1", "foto2") if kolom == "keduanya" else (kolom,)
+    tujuan = " dan ".join(targets)
+    data = await file.read(MAX_UPLOAD_BYTES + 1)
+    await file.close()
+    if not data or len(data) > MAX_UPLOAD_BYTES:
+        return redirect_manual(nim, "File kosong atau melebihi batas 15 MB", "gagal")
+    try:
+        data = to_jpeg(data, allowed_formats=("JPEG", "PNG"))
+    except ValueError as exc:
+        return redirect_manual(nim, str(exc), "gagal")
+    try:
+        conn = connect_db()
+        try:
+            insert_nim(conn, nim)
+            # Serialisasi pemeriksaan dan penimpaan untuk NIM yang sama.
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT nim FROM foto.md_foto WHERE nim = %s FOR UPDATE", (nim,))
+            occupied = []
+            for target in targets:
+                fetch = fetch_foto1 if target == "foto1" else fetch_foto2
+                if fetch(conn, nim) is not None:
+                    occupied.append(target)
+            if occupied and not timpa:
+                conn.rollback()
+                return redirect_manual(nim, f"{' dan '.join(occupied)} sudah terisi. Centang izin timpa dan pilih file lagi jika ingin menggantinya.", "gagal")
+            for target in targets:
+                replace = replace_foto1 if target == "foto1" else replace_foto2
+                if not replace(conn, nim, data):
+                    raise ValueError("NIM tidak ditemukan")
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+    except Exception:
+        return redirect_manual(nim, "Upload gagal. Periksa koneksi database lalu coba lagi.", "gagal")
+    # Preview lama tidak boleh disimpan setelah foto sumber/tujuan diganti.
+    previews.pop(nim, None)
+    preview_settings.pop(nim, None)
+    return redirect_manual(nim, f"Foto berhasil diupload ke {tujuan} tanpa filter", "ok")

@@ -49,10 +49,12 @@ def check_nim(nim):
     return nim
 
 
-def to_jpeg(data):
+def to_jpeg(data, allowed_formats=None):
     """Pastikan data adalah gambar valid; JPEG disimpan apa adanya, format lain dikonversi ke JPEG."""
     try:
         with Image.open(io.BytesIO(data)) as img:
+            if allowed_formats is not None and img.format not in allowed_formats:
+                raise ValueError("Gunakan foto JPEG atau PNG")
             img.load()
             if img.format == "JPEG":
                 return data

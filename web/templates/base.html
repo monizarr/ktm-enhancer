@@ -12,8 +12,9 @@
 <header class="bar">
   <div class="brand">KTM <span>Enhancer</span></div>
   <nav class="nav" aria-label="Halaman">
-    <a href="/" {% if halaman != "massal" %}aria-current="page"{% endif %}>Per NIM</a>
+    <a href="/" {% if halaman not in ("massal", "manual") %}aria-current="page"{% endif %}>Per NIM</a>
     <a href="/massal" {% if halaman == "massal" %}aria-current="page"{% endif %}>Massal</a>
+    <a href="/upload-manual" {% if halaman == "manual" %}aria-current="page"{% endif %}>Upload manual</a>
   </nav>
   {% block bar %}{% endblock %}
 </header>
